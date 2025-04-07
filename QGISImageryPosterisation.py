@@ -8,13 +8,13 @@ User options
 """
 
 #The aerial/satellite imagery to be posterised
-inImage             = 'C:/GIS Work/QGIS Scripts/Image Segmentation/BaseImageV2.tif'
+inImage             = 'C:/Temp/BaseImageV2.tif'
 
 #A polygon layer of modified land, to brighten urban/rural areas, leaving vegetation unbrightened
-modifiedLandLayer   = 'C:/GIS Work/QGIS Scripts/Image Segmentation/TasVegModified.gpkg'
+modifiedLandLayer   = 'C:/Temp/TasVegModified.gpkg'
 
 #A layer of dark lines to split the segments (e.g contours)
-darkLinesLayer      = 'E:/Rob/Other/BigMapV4 Storage/DEMs/3. Merged Together/RedoneMergedMosaic4m_LSB10_Contours_MinusLight_Single_MinusMedSingleDissSingleDiffedDiss.gpkg'
+darkLinesLayer      = 'C:/Temp/Contours.gpkg'
 
 compressOptions     = 'COMPRESS=LZW|PREDICTOR=2|NUM_THREADS=8|BIGTIFF=IF_SAFER|TILED=YES'
 
