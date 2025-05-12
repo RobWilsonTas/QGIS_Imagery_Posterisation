@@ -1,0 +1,1 @@
+This is a work in progress, but it basically is a way of reducing detail and noise in a raster so that it is more compressable using lossless compression algorithms (LZW, DEFLATE), this is not for JPEG compression
