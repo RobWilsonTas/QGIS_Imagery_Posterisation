@@ -8,13 +8,15 @@ User options
 """
 
 #The aerial/satellite imagery to be posterised
-inImage             = 'C:/Temp/BaseImageV2.tif'
+inImage             = 'C:/GIS Work/SatelliteImage.tif'
 
 #A polygon layer of modified land, to brighten urban/rural areas, leaving vegetation unbrightened
-modifiedLandLayer   = 'C:/Temp/TasVegModified.gpkg'
+modifiedLandLayer   = 'C:/GIS Work/TasVegModified.gpkg'
 
 #A layer of dark lines to split the segments (e.g contours)
-darkLinesLayer      = 'C:/Temp/Contours.gpkg'
+darkLinesLayer      = 'C:/GIS Work/Contours.gpkg'
+
+lightLinesLayer     = 'C:/GIS Work/LightLines.gpkg'
 
 compressOptions     = 'COMPRESS=LZW|PREDICTOR=2|NUM_THREADS=8|BIGTIFF=IF_SAFER|TILED=YES'
 
@@ -81,18 +83,24 @@ Dark line burning
 
 #Clip the dark line layer to the raster area
 processing.run("native:extractbyextent", {'INPUT':darkLinesLayer,'EXTENT':inputRasExtentParameter,'CLIP':True,'OUTPUT':processDirectory + 'DarkLinesClipped.gpkg'})
+processing.run("native:extractbyextent", {'INPUT':lightLinesLayer,'EXTENT':inputRasExtentParameter,'CLIP':True,'OUTPUT':processDirectory + 'LightLinesClipped.gpkg'})
 
-#Create a subtraction raster with the dark lines burnt in
+#Create subtraction/addition rasters with the dark/light lines burnt in
 processing.run("gdal:rasterize", {'INPUT':processDirectory + 'DarkLinesClipped.gpkg','FIELD':'','BURN':-15,'USE_Z':False,'UNITS':1,'WIDTH':pixelSizeXInputRas,'HEIGHT':pixelSizeYInputRas,'EXTENT':inputRasExtentParameter,
 'NODATA':-1,'OPTIONS':compressOptions,'DATA_TYPE':1,'INIT':0,'INVERT':False,'EXTRA':'','OUTPUT':processDirectory + 'DarkLinesClippedRasterised.tif'})
+processing.run("gdal:rasterize", {'INPUT':processDirectory + 'LightLinesClipped.gpkg','FIELD':'','BURN':20,'USE_Z':False,'UNITS':1,'WIDTH':pixelSizeXInputRas,'HEIGHT':pixelSizeYInputRas,'EXTENT':inputRasExtentParameter,
+'NODATA':-1,'OPTIONS':compressOptions,'DATA_TYPE':1,'INIT':0,'INVERT':False,'EXTRA':'','OUTPUT':processDirectory + 'LightLinesClippedRasterised.tif'})
 
-#Add the darkening to what was calculated earlier
-processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand1CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,'INPUT_C':None,'BAND_C':None,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
-    'FORMULA':'A+B','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand1CalcAll.tif'})
-processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand2CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,'INPUT_C':None,'BAND_C':None,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
-    'FORMULA':'A+B','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand2CalcAll.tif'})
-processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand3CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,'INPUT_C':None,'BAND_C':None,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
-    'FORMULA':'A+B','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand3CalcAll.tif'})
+#Add the light and dark lines to what was calculated earlier
+processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand1CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,
+    'INPUT_C':processDirectory + 'LightLinesClippedRasterised.tif','BAND_C':1,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
+    'FORMULA':'A+B+C','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand1CalcAll.tif'})
+processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand2CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,
+    'INPUT_C':processDirectory + 'LightLinesClippedRasterised.tif','BAND_C':1,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
+    'FORMULA':'A+B+C','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand2CalcAll.tif'})
+processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + 'ImageBand3CalcMod.tif','BAND_A':1,'INPUT_B':processDirectory + 'DarkLinesClippedRasterised.tif','BAND_B':1,
+    'INPUT_C':processDirectory + 'LightLinesClippedRasterised.tif','BAND_C':1,'INPUT_D':None,'BAND_D':None,'INPUT_E':None,'BAND_E':None,'INPUT_F':None,'BAND_F':None,
+    'FORMULA':'A+B+C','NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':4,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + 'ImageBand3CalcAll.tif'})
 
 #Combine the bands
 processing.run("gdal:buildvirtualraster", {'INPUT':[processDirectory + 'ImageBand1CalcAll.tif',processDirectory + 'ImageBand2CalcAll.tif',processDirectory + 'ImageBand3CalcAll.tif'],'RESOLUTION':0,'SEPARATE':True,'PROJ_DIFFERENCE':False,
@@ -108,7 +116,7 @@ Segmentation
 """
 
 #Segment the raster first to determine which areas have poor 'goodness' with the resulting segments
-processing.run("grass7:i.segment", {'input':[processDirectory + '3BandAllCombinedWarp.tif'],'threshold':0.25,'method':0,'similarity':0,'minsize':500,'memory':3000,'iterations':10,'seeds':None,'bounds':None,'-d':False,'-w':False,
+processing.run("grass7:i.segment", {'input':[processDirectory + '3BandAllCombinedWarp.tif'],'threshold':0.22,'method':0,'similarity':0,'minsize':500,'memory':4000,'iterations':10,'seeds':None,'bounds':None,'-d':False,'-w':False,
     'output':processDirectory + '3BandAllCombinedWarpSegment.tif','goodness':processDirectory + '3BandAllCombinedWarpGoodness.tif','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})
 
 #Resample the goodness out then in to remove noise
@@ -122,7 +130,7 @@ processing.run("gdal:rastercalculator", {'INPUT_A':processDirectory + '3BandAllC
     'FORMULA':'A < 0.98','NO_DATA':0,'EXTENT_OPT':0,'PROJWIN':None,'RTYPE':0,'OPTIONS':compressOptions,'EXTRA':'','OUTPUT':processDirectory + '3BandAllCombinedWarpGoodnessResampResampClassed.tif'})
 
 #Segement again with the seeds
-processing.run("grass7:i.segment", {'input':[processDirectory + '3BandAllCombinedWarp.tif'],'threshold':0.25,'method':0,'similarity':0,'minsize':250,'memory':3000,'iterations':15,
+processing.run("grass7:i.segment", {'input':[processDirectory + '3BandAllCombinedWarp.tif'],'threshold':0.22,'method':0,'similarity':0,'minsize':250,'memory':4000,'iterations':15,
     'seeds':processDirectory + '3BandAllCombinedWarpGoodnessResampResampClassed.tif','bounds':None,'-d':False,'-w':False,'output':processDirectory + '3BandAllCombinedWarpSegmentP2.tif','goodness':processDirectory + '3BandAllCombinedWarpGoodnessP2.tif',
     'GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})
 
@@ -145,8 +153,12 @@ processing.run("gdal:rasterize_over", {'INPUT':processDirectory + 'GreenMedian.g
 processing.run("gdal:rasterize_over", {'INPUT':processDirectory + 'BlueMedian.gpkg','INPUT_RASTER':processDirectory + 'ImageBand3CalcAll.tif','FIELD':'_median','ADD':False,'EXTRA':''})
 
 #Combine the bands
-processing.runAndLoadResults("gdal:buildvirtualraster", {'INPUT':[processDirectory + 'ImageBand1CalcAll.tif',processDirectory + 'ImageBand2CalcAll.tif',processDirectory + 'ImageBand3CalcAll.tif'],'RESOLUTION':0,'SEPARATE':True,
-    'PROJ_DIFFERENCE':False,'ADD_ALPHA':False,'ASSIGN_CRS':None,'RESAMPLING':0,'SRC_NODATA':'','EXTRA':'','OUTPUT':'TEMPORARY_OUTPUT'})
+processing.run("gdal:buildvirtualraster", {'INPUT':[processDirectory + 'ImageBand1CalcAll.tif',processDirectory + 'ImageBand2CalcAll.tif',processDirectory + 'ImageBand3CalcAll.tif'],'RESOLUTION':0,'SEPARATE':True,
+    'PROJ_DIFFERENCE':False,'ADD_ALPHA':False,'ASSIGN_CRS':None,'RESAMPLING':0,'SRC_NODATA':'','EXTRA':'','OUTPUT':processDirectory + 'VirtualFinal.vrt'})
+    
+processing.run("gdal:warpreproject", {'INPUT':processDirectory + 'VirtualFinal.vrt','SOURCE_CRS':None,'TARGET_CRS':None,'RESAMPLING':None,'NODATA':None,'TARGET_RESOLUTION':None,'OPTIONS':compressOptions,'DATA_TYPE':1,
+    'TARGET_EXTENT':None,'TARGET_EXTENT_CRS':None,'MULTITHREADING':True,'EXTRA':'','OUTPUT':processDirectory + inImageName + 'Posterised.tif'})
+
 
 """
 #######################################################################
